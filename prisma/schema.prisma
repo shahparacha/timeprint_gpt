@@ -1,0 +1,124 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Project {
+  id             String                 @id @default(cuid())
+  name           String
+  description    String?
+  address        String? // Street address
+  city           String?
+  state          String?
+  country        String?
+  zipCode        String?
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+  // Use Clerk's organization ID instead of our own foreign key
+  clerkOrgId     String
+  reports        Report[]
+  blueprints     Blueprint[]
+  workers        WorkerProject[]
+  subcontractors SubcontractorProject[]
+}
+
+model Subcontractor {
+  id          String                 @id @default(cuid())
+  name        String
+  contactName String? // Name of the primary contact person
+  email       String?                @unique
+  phone       String?
+  address     String? // Street address
+  unitNumber  String? // Apartment/suite/unit number
+  city        String?
+  state       String?
+  country     String?
+  zipCode     String?
+  taxId       String?
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  workers     Worker[]
+  projects    SubcontractorProject[]
+}
+
+// Junction table for Subcontractor-Project many-to-many relationship
+model SubcontractorProject {
+  subcontractor   Subcontractor @relation(fields: [subcontractorId], references: [id], onDelete: Cascade)
+  subcontractorId String
+  project         Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId       String
+  assignedAt      DateTime      @default(now())
+
+  @@id([subcontractorId, projectId])
+}
+
+model Worker {
+  id              String                 @id @default(cuid())
+  firstName       String
+  lastName        String
+  email           String?                @unique
+  phone           String?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  projects        WorkerProject[]
+  reports         Report[] // A worker can have many reports
+  subcontractorId String
+  subcontractor   Subcontractor          @relation(fields: [subcontractorId], references: [id], onDelete: Cascade)
+  identifications WorkerIdentification[]
+}
+
+// Junction table for Worker-Project many-to-many relationship
+model WorkerProject {
+  worker     Worker   @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  workerId   String
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId  String
+  assignedAt DateTime @default(now())
+
+  @@id([workerId, projectId])
+}
+
+model WorkerIdentification {
+  id         String    @id @default(cuid())
+  fileName   String
+  filePath   String // Path to the ID file on the server
+  fileType   String // File type/extension
+  fileSize   Int? // Size of the file in bytes
+  issueDate  DateTime?
+  expiryDate DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  workerId   String
+  worker     Worker    @relation(fields: [workerId], references: [id])
+}
+
+model Report {
+  id         String   @id @default(cuid())
+  title      String?
+  filePath   String // Path to the report file on the server
+  fileType   String // File type/extension of the report
+  fileSize   Int? // Size of the file in bytes
+  reportDate DateTime // The date the report was issued/submitted
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  projectId  String
+  project    Project  @relation(fields: [projectId], references: [id])
+  workerId   String
+  worker     Worker   @relation(fields: [workerId], references: [id])
+}
+
+model Blueprint {
+  id        String   @id @default(cuid())
+  title     String
+  filePath  String // Path to the blueprint file on the server
+  fileType  String // File type/extension of the blueprint
+  fileSize  Int? // Size of the file in bytes
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id])
+}
