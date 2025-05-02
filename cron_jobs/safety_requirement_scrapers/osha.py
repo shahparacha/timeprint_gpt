@@ -27,7 +27,7 @@ def main():
         encoder = tiktoken.get_encoding(encoding_name)
         return len(encoder.encode(text))
 
-    def chunk_document(document, max_tokens=7000):
+    def chunk_document(document, max_tokens=6000):
         """Split a document into chunks of approximately max_tokens."""
         encoder = tiktoken.get_encoding("cl100k_base")
         tokens = encoder.encode(document)
@@ -50,7 +50,7 @@ def main():
         
         return chunks
 
-    def insert_batch(collection, source_objects, max_tokens=7000):
+    def insert_batch(collection, source_objects, max_tokens=6000):
         """Insert documents into Weaviate, handling chunking for oversized documents."""
         processed_objects = []
         
@@ -94,7 +94,7 @@ def main():
                     # vector=vector  # Optionally provide a pre-obtained vector
                 )
         
-        if batch.number_errors > 10:
+        if batch.number_errors > 1:
             print("Batch import stopped due to excessive errors.")
             raise Exception("Batch import stopped due to excessive errors.")
         
@@ -108,10 +108,10 @@ def main():
             / ".env")
     load_dotenv(dotenv_path=env_path, override=False)
     
-    openai_api_key = os.getenv("NEXT_PUBLIC_OPENAI_API_KEY")
-    jina_api_key = os.getenv("NEXT_PUBLIC_JINA_API_KEY")
-    weaviate_api_key = os.getenv("NEXT_PUBLIC_WEAVIATE_API_KEY")
-    weaviate_cluster_url = os.getenv("NEXT_PUBLIC_WEAVIATE_CLUSTER_URL")
+    openai_api_key = os.getenv("OPENAI_API_KEY")
+    jina_api_key = os.getenv("JINA_API_KEY")
+    weaviate_api_key = os.getenv("WEAVIATE_API_KEY")
+    weaviate_cluster_url = os.getenv("WEAVIATE_CLUSTER_URL")
 
     #initialize agents
     class OshaUrlsOutput(BaseModel):

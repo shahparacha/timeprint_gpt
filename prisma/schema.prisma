@@ -122,3 +122,16 @@ model Blueprint {
   projectId String
   project   Project  @relation(fields: [projectId], references: [id])
 }
+
+model ChatSession {
+  id             String   @id @default(cuid())
+  title          String
+  messages       String // Stored as a JSON string
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  userId         String
+  organizationId String
+
+  @@index([userId])
+  @@index([organizationId])
+}
