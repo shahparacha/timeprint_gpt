@@ -31,7 +31,7 @@ export default function Header({ userId }: { userId: string | null }) {
         {userId && (
           <>
             <Link href="/dashboard" className="nav-link">Dashboard</Link>
-            <Link href="/chat" className="nav-link">Chat</Link>
+            <Link href="/chat" className="nav-link">Ask Anything</Link>
             <Link href="/profile" className="nav-link">Profile</Link>
             <Link href="/organization" className="nav-link">Organization</Link>
             <Link href="/projects" className="nav-link">Projects</Link>

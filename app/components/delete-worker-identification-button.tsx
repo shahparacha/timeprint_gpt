@@ -22,9 +22,9 @@ export function DeleteWorkerIdentificationButton({ id, workerId }: { id: string,
         <button
             onClick={handleDelete}
             disabled={isDeleting}
-            className="text-red-600 hover:text-red-900 disabled:opacity-50"
+            className="btn-neumorphic text-red-600 hover:text-red-700 disabled:opacity-50"
         >
-            {isDeleting ? "Deleting..." : "Delete"}
+            {isDeleting ? "Deleting..." : "Delete Project"}
         </button>
     );
 }

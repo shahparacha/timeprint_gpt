@@ -6,7 +6,8 @@
     "dev": "NODE_ENV=development next dev --turbopack",
     "build": "NODE_ENV=production next build",
     "start": "NODE_ENV=production next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "setup-weaviate": "node --experimental-specifier-resolution=node scripts/setupWeaviate.js"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.18.0",
@@ -18,18 +19,20 @@
     "react-dom": "^19.0.0",
     "react-error-boundary": "^5.0.0",
     "react-markdown": "^10.1.0",
+    "weaviate-client": "^3.5.3",
     "weaviate-ts-client": "^2.2.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/node": "^20.17.43",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.3.1",
     "prisma": "^6.7.0",
     "tailwindcss": "^4",
+    "ts-node": "^10.9.2",
     "typescript": "^5"
   }
 }

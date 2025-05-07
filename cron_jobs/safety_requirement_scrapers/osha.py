@@ -19,7 +19,6 @@ import random
 import tiktoken
 
 def main():
-
     def count_tokens(text, model="text-embedding-3-large"):
         """Count tokens using the appropriate tokenizer for the embedding model."""
         # Use cl100k_base encoding for the newer embedding models
@@ -139,94 +138,94 @@ def main():
         auth_credentials=Auth.api_key(weaviate_api_key),
         headers={'X-OpenAI-Api-key': openai_api_key},
     )
+    try:
 
-    #initialize weaviate collection
-    collection_name = "osha_standards"
-    if weaviate_client.collections.exists(collection_name):
-        print("Collection (index) already exists. Deleting and making a new one...")
-        weaviate_client.collections.delete(collection_name)
+        #initialize weaviate collection
+        collection_name = "osha_standards"
+        if weaviate_client.collections.exists(collection_name):
+            print("Collection (index) already exists. Deleting and making a new one...")
+            weaviate_client.collections.delete(collection_name)
 
-    print("Creating a new collection (index) with some metadata as properties...")
-    osha_weaviate_collection = weaviate_client.collections.create(
-                                                collection_name,
-                                                vectorizer_config=[
-                                                    Configure.NamedVectors.text2vec_openai(
-                                                        name="oshaDocumentEmbedding",
-                                                        source_properties=[
-                                                            "part_number", "subpart", "standard_number",
-                                                            "title", "gpo_source", "content"
-                                                        ],
-                                                    )
-                                                ],
-                                                properties=[
-                                                    Property(
-                                                        name="part_number",
-                                                        data_type=DataType.TEXT,
-                                                        vectorize_property_name=False,
-                                                    ),
-                                                    Property(
-                                                        name="part_number_title",
-                                                        data_type=DataType.TEXT,
-                                                        vectorize_property_name=False,
-                                                    ),
-                                                    Property(
-                                                        name="subpart",
-                                                        data_type=DataType.TEXT,
-                                                        vectorize_property_name=False,
-                                                    ),
-                                                    Property(
-                                                        name="subpart_title",
-                                                        data_type=DataType.TEXT,
-                                                        vectorize_property_name=False,
-                                                    ),
-                                                    Property(
-                                                        name="standard_number",
-                                                        data_type=DataType.TEXT,
-                                                        vectorize_property_name=False,
-                                                    ),
-                                                    Property(
-                                                        name="title",
-                                                        data_type=DataType.TEXT,
-                                                        vectorize_property_name=False,
-                                                    ),
-                                                    Property(
-                                                        name="gpo_source",
-                                                        data_type=DataType.TEXT,
-                                                        vectorize_property_name=False,
-                                                    ),
-                                                    Property(
-                                                        name="content",
-                                                        data_type=DataType.TEXT,
-                                                        vectorize_property_name=True,
-                                                        tokenization=wvc.config.Tokenization.LOWERCASE,
-                                                    ),
-                                                ]
-                                            )
+        print("Creating a new collection (index) with some metadata as properties...")
+        osha_weaviate_collection = weaviate_client.collections.create(
+                                                    collection_name,
+                                                    vectorizer_config=[
+                                                        Configure.NamedVectors.text2vec_openai(
+                                                            name="oshaDocumentEmbedding",
+                                                            source_properties=[
+                                                                "part_number", "subpart", "standard_number",
+                                                                "title", "gpo_source", "content"
+                                                            ],
+                                                        )
+                                                    ],
+                                                    properties=[
+                                                        Property(
+                                                            name="part_number",
+                                                            data_type=DataType.TEXT,
+                                                            vectorize_property_name=False,
+                                                        ),
+                                                        Property(
+                                                            name="part_number_title",
+                                                            data_type=DataType.TEXT,
+                                                            vectorize_property_name=False,
+                                                        ),
+                                                        Property(
+                                                            name="subpart",
+                                                            data_type=DataType.TEXT,
+                                                            vectorize_property_name=False,
+                                                        ),
+                                                        Property(
+                                                            name="subpart_title",
+                                                            data_type=DataType.TEXT,
+                                                            vectorize_property_name=False,
+                                                        ),
+                                                        Property(
+                                                            name="standard_number",
+                                                            data_type=DataType.TEXT,
+                                                            vectorize_property_name=False,
+                                                        ),
+                                                        Property(
+                                                            name="title",
+                                                            data_type=DataType.TEXT,
+                                                            vectorize_property_name=False,
+                                                        ),
+                                                        Property(
+                                                            name="gpo_source",
+                                                            data_type=DataType.TEXT,
+                                                            vectorize_property_name=False,
+                                                        ),
+                                                        Property(
+                                                            name="content",
+                                                            data_type=DataType.TEXT,
+                                                            vectorize_property_name=True,
+                                                            tokenization=wvc.config.Tokenization.LOWERCASE,
+                                                        ),
+                                                    ]
+                                                )
 
-    jina_url = "https://r.jina.ai/"
-    osha_url = "https://www.osha.gov/laws-regs/regulations/standardnumber/1926"
-    headers = {
-    "Authorization": "Bearer " + jina_api_key
-    }
+        jina_url = "https://r.jina.ai/"
+        osha_url = "https://www.osha.gov/laws-regs/regulations/standardnumber/1926"
+        headers = {
+        "Authorization": "Bearer " + jina_api_key
+        }
 
-    url_response = requests.get(jina_url + osha_url, headers=headers)
+        url_response = requests.get(jina_url + osha_url, headers=headers)
 
-    osha_urls = url_agent.run_sync(f"What are all the links in this webpage that containt documents to Standards 1926, do not return links to a Subpart or the Table of Contents {url_response.text}")
+        osha_urls = url_agent.run_sync(f"What are all the links in this webpage that containt documents to Standards 1926, do not return links to a Subpart or the Table of Contents {url_response.text}")
 
-    source_objects = []
-    for i, url in enumerate(osha_urls.output.osha_urls):
-        print(f"This is the url: {url}")
-        if i % 20 == 0 or i == len(osha_urls.output.osha_urls) - 1:
-            insert_batch(osha_weaviate_collection, source_objects)
-            source_objects = []
-        time.sleep(random.randint(2, 8))    
-        osha_documents_response = requests.get(jina_url + url, headers=headers)
-        osha_dict = osha_dict_agent.run_sync(f"Return to me the part number, subpart, standard number, title, gpo source, and the content of this document {osha_documents_response.text}. The part_number, subpart, standard_number, title, gpo_source, and content should be the keys of the dictionary and the values should be your answer to what each key relates to on the webpage. Content will be the content of the page that is located after the gpo source. Do not respond back with any links as a value in the dictionary.")
-        print(f"This is the dictionary: {osha_dict.output.osha_dict}")
-        source_objects.append(osha_dict.output.osha_dict)
-    
-    osha_col = weaviate_client.collections.get(collection_name)
-    print(osha_col)
+        source_objects = []
+        for i, url in enumerate(osha_urls.output.osha_urls):
+            print(f"This is the url: {url}")
+            if i % 20 == 0 or i == len(osha_urls.output.osha_urls) - 1:
+                insert_batch(osha_weaviate_collection, source_objects)
+                source_objects = []
+            time.sleep(random.randint(2, 8))    
+            osha_documents_response = requests.get(jina_url + url, headers=headers)
+            osha_dict = osha_dict_agent.run_sync(f"Return to me the part number, subpart, standard number, title, gpo source, and the content of this document {osha_documents_response.text}. The part_number, subpart, standard_number, title, gpo_source, and content should be the keys of the dictionary and the values should be your answer to what each key relates to on the webpage. Content will be the content of the page that is located after the gpo source. Do not respond back with any links as a value in the dictionary.")
+            print(f"This is the dictionary: {osha_dict.output.osha_dict}")
+            source_objects.append(osha_dict.output.osha_dict)
+    finally:     
+        weaviate_client.close()
 
 
 if __name__ == '__main__':

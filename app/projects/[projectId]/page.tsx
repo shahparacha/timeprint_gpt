@@ -11,7 +11,8 @@ interface ProjectDetailPageProps {
 }
 
 export default async function ProjectDetailPage({ params }: ProjectDetailPageProps) {
-    const { projectId } = params;
+    const resolvedParams = await params;
+    const { projectId } = resolvedParams;
 
     // Get auth info
     const { userId, orgId } = await auth();

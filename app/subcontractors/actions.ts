@@ -208,66 +208,58 @@ export async function updateSubcontractor(id: string, formData: FormData) {
             throw new Error('Name is required');
         }
 
-        // Get project IDs (now optional)
+        // Get project IDs as an array (optional)
         const projectIds = formData.getAll('projectIds') as string[];
 
-        // Get current subcontractor data
-        const currentSubcontractor = await db.subcontractor.findUnique({
-            where: { id },
-            include: {
-                projects: true,
-            },
-        });
-
-        if (!currentSubcontractor) {
-            throw new Error('Subcontractor not found');
-        }
-
-        // Create update data
-        const updateData: any = {
-            name,
-            contactName: (formData.get('contactName') as string) || null,
-            email: (formData.get('email') as string) || null,
-            phone: (formData.get('phone') as string) || null,
-            address: (formData.get('address') as string) || null,
-            unitNumber: (formData.get('unitNumber') as string) || null,
-            city: (formData.get('city') as string) || null,
-            state: (formData.get('state') as string) || null,
-            country: (formData.get('country') as string) || null,
-            zipCode: (formData.get('zipCode') as string) || null,
-            taxId: (formData.get('taxId') as string) || null,
-        };
-
-        // Always delete existing project associations
-        updateData.projects = {
-            deleteMany: {},
-        };
-
-        // Only create new project associations if projects were selected
-        if (projectIds.length > 0) {
-            updateData.projects.create = projectIds.map(projectId => ({
-                projectId,
-            }));
-        }
-
-        // Update subcontractor
+        // Basic subcontractor data update
         await db.subcontractor.update({
             where: { id },
-            data: updateData,
+            data: {
+                name,
+                contactName: (formData.get('contactName') as string) || null,
+                email: (formData.get('email') as string) || null,
+                phone: (formData.get('phone') as string) || null,
+                address: (formData.get('address') as string) || null,
+                unitNumber: (formData.get('unitNumber') as string) || null,
+                city: (formData.get('city') as string) || null,
+                state: (formData.get('state') as string) || null,
+                country: (formData.get('country') as string) || null,
+                zipCode: (formData.get('zipCode') as string) || null,
+                taxId: (formData.get('taxId') as string) || null,
+            }
         });
+
+        // Handle project associations separately 
+        // First delete existing associations
+        await db.subcontractorProject.deleteMany({
+            where: { subcontractorId: id }
+        });
+
+        // Then create new associations for each selected project
+        if (projectIds && projectIds.length > 0) {
+            for (const projectId of projectIds) {
+                await db.subcontractorProject.create({
+                    data: {
+                        subcontractorId: id,
+                        projectId
+                    }
+                });
+            }
+        }
 
         // Revalidate paths
         revalidatePath(`/subcontractors/${id}`);
         revalidatePath('/subcontractors');
 
-        // Revalidate both old and new project paths
-        const oldProjectIds = currentSubcontractor.projects.map(p => p.projectId);
-        const allProjectIds = [...new Set([...oldProjectIds, ...projectIds])];
-        allProjectIds.forEach(projectId => {
-            revalidatePath(`/projects/${projectId}`);
-        });
+        // Revalidate project paths
+        if (projectIds && projectIds.length > 0) {
+            for (const projectId of projectIds) {
+                revalidatePath(`/projects/${projectId}`);
+            }
+        }
 
-        redirect('/subcontractors');
+        // Return success
+        return { success: true };
     } catch (error) {
         console.error(`Error updating subcontractor ${id}:`, error);
         throw new Error('Failed to update subcontractor');

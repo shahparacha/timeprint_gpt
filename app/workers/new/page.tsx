@@ -11,7 +11,8 @@ export default async function NewWorkerPage({
     searchParams: { [key: string]: string | string[] | undefined };
 }) {
     const { userId, orgId } = await auth();
-    const subcontractorId = typeof searchParams.subcontractorId === 'string' ? searchParams.subcontractorId : undefined;
+    const resolvedParams = await searchParams;
+    const subcontractorId = typeof resolvedParams.subcontractorId === 'string' ? resolvedParams.subcontractorId : undefined;
 
     // Fetch the data directly in the component - App Router pattern
     const projects = await getProjects();

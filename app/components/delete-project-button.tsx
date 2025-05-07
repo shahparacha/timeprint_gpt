@@ -24,7 +24,7 @@ export function DeleteProjectButton({ id }: { id: string }) {
             disabled={isDeleting}
             className="btn-neumorphic text-red-600 hover:text-red-700 disabled:opacity-50"
         >
-            {isDeleting ? "Deleting..." : "Delete Project"}
+            {isDeleting ? "Deleting..." : "Delete"}
         </button>
     );
 }

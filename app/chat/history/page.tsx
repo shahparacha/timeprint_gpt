@@ -25,6 +25,9 @@ export default async function ChatHistoryPage({
             session.messages && session.messages.length > 0
         );
 
+        // Fix: Await searchParams before using its properties
+        const resolvedParams = await searchParams;
+
         return (
             <div className="max-w-6xl mx-auto p-6">
                 <div className="mb-8">
@@ -46,7 +49,7 @@ export default async function ChatHistoryPage({
                 <Suspense fallback={<div className="text-center py-8">Loading sessions...</div>}>
                     <SearchableHistory
                         sessions={validSessions}
-                        initialQuery={searchParams.query || ''}
+                        initialQuery={resolvedParams.query || ''}
                     />
                 </Suspense>
             </div>

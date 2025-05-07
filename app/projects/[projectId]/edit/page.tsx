@@ -15,9 +15,13 @@ export default async function EditProjectPage({
         redirect("/sign-in");
     }
 
+    // Fix: Await params before using its properties
+    const resolvedParams = await params;
+    const projectId = resolvedParams.projectId;
+
     const project = await db.project.findUnique({
         where: {
-            id: params.projectId,
+            id: projectId,
             clerkOrgId: orgId // Ensure the project belongs to the user's organization
         }
     });

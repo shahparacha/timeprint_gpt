@@ -35,7 +35,7 @@ export const UserButtonClient = () => {
     <div className="relative">
       <button
         onClick={toggleMenu}
-        className="flex items-center focus:outline-none"
+        className="btn-neumorphic flex items-center focus:outline-none"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
@@ -62,10 +62,10 @@ export const UserButtonClient = () => {
             onClick={handleClickOutside}
           ></div>
 
-          <div className="absolute right-0 mt-2 w-40 bg-white rounded-md shadow-lg py-1 z-20">
+          <div className="absolute right-0 mt-2 w-40 card-neumorphic py-1 z-20">
             <button
               onClick={handleSignOut}
-              className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+              className="block w-full text-left px-4 py-2 nav-link"
             >
               Sign Out
             </button>

@@ -7,6 +7,7 @@ export default async function ProjectsPage() {
   // Get the authenticated user and their organization with session claims
   const { userId, orgId, sessionClaims } = await auth();
   const user = await currentUser();
+  console.log("orgId", orgId)
 
   // Redirect if not authenticated
   if (!userId || !user) {

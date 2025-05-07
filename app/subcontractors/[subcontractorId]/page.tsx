@@ -11,7 +11,8 @@ interface SubcontractorPageProps {
 }
 
 export default async function SubcontractorPage({ params }: SubcontractorPageProps) {
-    const { subcontractorId } = params;
+
+    const { subcontractorId } = await params;
     const subcontractor = await getSubcontractorById(subcontractorId);
 
     if (!subcontractor) {

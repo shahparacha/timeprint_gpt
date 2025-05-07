@@ -76,6 +76,7 @@ export async function getUser() {
 
 // Search documents in Weaviate based on query and user ID
 export async function searchDocuments(query: string, userId: string, limit: number = 5) {
+    //change this to work differently, do i have graphql out of box?
     const client = getWeaviateClient();
 
     const result = await client.graphql
@@ -96,6 +97,7 @@ export async function searchDocuments(query: string, userId: string, limit: numb
 
 // Generate chat response using OpenAI with document context
 export async function generateChatResponse(
+    // change this to work differently for after you send message
     messages: Message[],
     query: string,
     userId: string

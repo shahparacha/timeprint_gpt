@@ -10,7 +10,7 @@ interface EditSubcontractorPageProps {
 }
 
 export default async function EditSubcontractorPage({ params }: EditSubcontractorPageProps) {
-    const { subcontractorId } = params;
+    const { subcontractorId } = await params;
     const subcontractor = await getSubcontractorById(subcontractorId);
     const projects = await getProjects();
 
@@ -18,203 +18,210 @@ export default async function EditSubcontractorPage({ params }: EditSubcontracto
         notFound();
     }
 
+    // Get the currently associated project IDs
+    const currentProjectIds = subcontractor.projects.map(p => p.project.id);
+
     async function handleUpdateSubcontractor(formData: FormData) {
         'use server';
 
-        await updateSubcontractor(subcontractorId, formData);
-        redirect(`/subcontractors/${subcontractorId}`);
+        const result = await updateSubcontractor(subcontractorId, formData);
+        if (result.success) {
+            redirect(`/subcontractors/${subcontractorId}`);
+        }
     }
 
     return (
-        <div className="container mx-auto py-6">
-            <Link href={`/subcontractors/${subcontractorId}`} className="text-blue-600 hover:underline mb-6 block">
-                ← Back to Subcontractor
-            </Link>
+        <div className="max-w-6xl mx-auto p-6">
+            <div className="flex items-center gap-2 mb-6 text-sm">
+                <Link href="/subcontractors" className="text-[#DA7756] hover:opacity-80">
+                    Subcontractors
+                </Link>
+                <span className="text-[#333333]">/</span>
+                <Link href={`/subcontractors/${subcontractorId}`} className="text-[#DA7756] hover:opacity-80">
+                    Details
+                </Link>
+                <span className="text-[#333333]">/</span>
+                <span className="text-[#333333] font-medium">Edit</span>
+            </div>
 
-            <h1 className="text-3xl font-bold mb-6">Edit Subcontractor</h1>
-
-            <form action={handleUpdateSubcontractor} className="bg-white p-6 rounded-lg border border-gray-200">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                            Company Name*
-                        </label>
-                        <input
-                            type="text"
-                            id="name"
-                            name="name"
-                            required
-                            defaultValue={subcontractor.name}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                        />
-                    </div>
-
-                    <div>
-                        <label htmlFor="contactName" className="block text-sm font-medium text-gray-700">
-                            Contact Name
-                        </label>
-                        <input
-                            type="text"
-                            id="contactName"
-                            name="contactName"
-                            defaultValue={subcontractor.contactName || ''}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                        />
-                    </div>
-
-                    <div>
-                        <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                            Email
-                        </label>
-                        <input
-                            type="email"
-                            id="email"
-                            name="email"
-                            defaultValue={subcontractor.email || ''}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                        />
-                    </div>
-
-                    <div>
-                        <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
-                            Phone
-                        </label>
-                        <input
-                            type="tel"
-                            id="phone"
-                            name="phone"
-                            defaultValue={subcontractor.phone || ''}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                        />
-                    </div>
-
-                    <div className="md:col-span-2">
-                        <label htmlFor="address" className="block text-sm font-medium text-gray-700">
-                            Address
-                        </label>
-                        <input
-                            type="text"
-                            id="address"
-                            name="address"
-                            defaultValue={subcontractor.address || ''}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                        />
-                    </div>
-
-                    <div>
-                        <label htmlFor="unitNumber" className="block text-sm font-medium text-gray-700">
-                            Unit/Suite Number
-                        </label>
-                        <input
-                            type="text"
-                            id="unitNumber"
-                            name="unitNumber"
-                            defaultValue={subcontractor.unitNumber || ''}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                        />
-                    </div>
-
-                    <div>
-                        <label htmlFor="city" className="block text-sm font-medium text-gray-700">
-                            City
-                        </label>
-                        <input
-                            type="text"
-                            id="city"
-                            name="city"
-                            defaultValue={subcontractor.city || ''}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                        />
-                    </div>
-
-                    <div>
-                        <label htmlFor="state" className="block text-sm font-medium text-gray-700">
-                            State/Province
-                        </label>
-                        <input
-                            type="text"
-                            id="state"
-                            name="state"
-                            defaultValue={subcontractor.state || ''}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                        />
-                    </div>
-
-                    <div>
-                        <label htmlFor="country" className="block text-sm font-medium text-gray-700">
-                            Country
-                        </label>
-                        <input
-                            type="text"
-                            id="country"
-                            name="country"
-                            defaultValue={subcontractor.country || ''}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                        />
-                    </div>
-
-                    <div>
-                        <label htmlFor="zipCode" className="block text-sm font-medium text-gray-700">
-                            Zip/Postal Code
-                        </label>
-                        <input
-                            type="text"
-                            id="zipCode"
-                            name="zipCode"
-                            defaultValue={subcontractor.zipCode || ''}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                        />
-                    </div>
-
-                    <div>
-                        <label htmlFor="taxId" className="block text-sm font-medium text-gray-700">
-                            Tax ID
-                        </label>
-                        <input
-                            type="text"
-                            id="taxId"
-                            name="taxId"
-                            defaultValue={subcontractor.taxId || ''}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                        />
-                    </div>
-
-                    <div>
-                        <label htmlFor="projectId" className="block text-sm font-medium text-gray-700">
-                            Project*
-                        </label>
-                        <select
-                            id="projectId"
-                            name="projectId"
-                            required
-                            defaultValue={subcontractor.projectId}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                        >
-                            <option value="">Select a project</option>
-                            {projects.map((project) => (
-                                <option key={project.id} value={project.id}>
-                                    {project.name}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
+            <div className="card-neumorphic">
+                <div className="p-6">
+                    <h1 className="text-2xl font-bold mb-6 text-[#DA7756]">Edit Subcontractor</h1>
+                    <form action={handleUpdateSubcontractor}>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label htmlFor="name" className="block mb-2 text-sm font-medium text-[#333333]">
+                                    Company Name*
+                                </label>
+                                <input
+                                    type="text"
+                                    id="name"
+                                    name="name"
+                                    required
+                                    defaultValue={subcontractor.name}
+                                    className="input-neumorphic w-full"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="contactName" className="block mb-2 text-sm font-medium text-[#333333]">
+                                    Contact Name
+                                </label>
+                                <input
+                                    type="text"
+                                    id="contactName"
+                                    name="contactName"
+                                    defaultValue={subcontractor.contactName || ''}
+                                    className="input-neumorphic w-full"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="email" className="block mb-2 text-sm font-medium text-[#333333]">
+                                    Email
+                                </label>
+                                <input
+                                    type="email"
+                                    id="email"
+                                    name="email"
+                                    defaultValue={subcontractor.email || ''}
+                                    className="input-neumorphic w-full"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="phone" className="block mb-2 text-sm font-medium text-[#333333]">
+                                    Phone
+                                </label>
+                                <input
+                                    type="tel"
+                                    id="phone"
+                                    name="phone"
+                                    defaultValue={subcontractor.phone || ''}
+                                    className="input-neumorphic w-full"
+                                />
+                            </div>
+                            <div className="md:col-span-2">
+                                <label htmlFor="address" className="block mb-2 text-sm font-medium text-[#333333]">
+                                    Address
+                                </label>
+                                <input
+                                    type="text"
+                                    id="address"
+                                    name="address"
+                                    defaultValue={subcontractor.address || ''}
+                                    className="input-neumorphic w-full"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="unitNumber" className="block mb-2 text-sm font-medium text-[#333333]">
+                                    Unit/Suite Number
+                                </label>
+                                <input
+                                    type="text"
+                                    id="unitNumber"
+                                    name="unitNumber"
+                                    defaultValue={subcontractor.unitNumber || ''}
+                                    className="input-neumorphic w-full"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="city" className="block mb-2 text-sm font-medium text-[#333333]">
+                                    City
+                                </label>
+                                <input
+                                    type="text"
+                                    id="city"
+                                    name="city"
+                                    defaultValue={subcontractor.city || ''}
+                                    className="input-neumorphic w-full"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="state" className="block mb-2 text-sm font-medium text-[#333333]">
+                                    State/Province
+                                </label>
+                                <input
+                                    type="text"
+                                    id="state"
+                                    name="state"
+                                    defaultValue={subcontractor.state || ''}
+                                    className="input-neumorphic w-full"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="country" className="block mb-2 text-sm font-medium text-[#333333]">
+                                    Country
+                                </label>
+                                <input
+                                    type="text"
+                                    id="country"
+                                    name="country"
+                                    defaultValue={subcontractor.country || ''}
+                                    className="input-neumorphic w-full"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="zipCode" className="block mb-2 text-sm font-medium text-[#333333]">
+                                    Zip/Postal Code
+                                </label>
+                                <input
+                                    type="text"
+                                    id="zipCode"
+                                    name="zipCode"
+                                    defaultValue={subcontractor.zipCode || ''}
+                                    className="input-neumorphic w-full"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="taxId" className="block mb-2 text-sm font-medium text-[#333333]">
+                                    Tax ID
+                                </label>
+                                <input
+                                    type="text"
+                                    id="taxId"
+                                    name="taxId"
+                                    defaultValue={subcontractor.taxId || ''}
+                                    className="input-neumorphic w-full"
+                                />
+                            </div>
+                            <div className="md:col-span-2">
+                                <label className="block mb-2 text-sm font-medium text-[#333333]">
+                                    Projects
+                                </label>
+                                <div className="card-neumorphic p-4 max-h-60 overflow-y-auto">
+                                    {projects.map((project) => (
+                                        <div key={project.id} className="flex items-center mb-3 last:mb-0">
+                                            <input
+                                                type="checkbox"
+                                                id={`project-${project.id}`}
+                                                name="projectIds"
+                                                value={project.id}
+                                                defaultChecked={currentProjectIds.includes(project.id)}
+                                                className="w-4 h-4 accent-[#DA7756]"
+                                            />
+                                            <label htmlFor={`project-${project.id}`} className="ml-2 text-sm text-[#333333]">
+                                                {project.name}
+                                            </label>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="flex justify-end space-x-3 mt-6">
+                            <Link
+                                href={`/subcontractors/${subcontractorId}`}
+                                className="btn-neumorphic"
+                            >
+                                Cancel
+                            </Link>
+                            <button
+                                type="submit"
+                                className="btn-neumorphic btn-primary"
+                            >
+                                Update Subcontractor
+                            </button>
+                        </div>
+                    </form>
                 </div>
-
-                <div className="flex justify-end space-x-3 mt-6">
-                    <Link
-                        href={`/subcontractors/${subcontractorId}`}
-                        className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50"
-                    >
-                        Cancel
-                    </Link>
-                    <button
-                        type="submit"
-                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                    >
-                        Update Subcontractor
-                    </button>
-                </div>
-            </form>
+            </div>
         </div>
     );
 }
