@@ -42,23 +42,12 @@
 // } ONCE WE HAVE A REAL PROJECT UNCOMMENT THIS
 
 // middleware.ts
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
-import { NextResponse } from 'next/server'
-
-// Make everything public for now since we only have the homepage
-const isPublicRoute = createRouteMatcher(['/', '/(.*)'])
-
-export default clerkMiddleware(async (auth, req) => {
-  // Don't do any redirects or protection for now
-  return NextResponse.next();
-})
+// middleware.ts
+export default function middleware() {
+  // Do nothing - just let everything through
+}
 
 export const config = {
-  matcher: [
-    // Skip Next.js internals and all static files
-    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
-    // Always run for API routes
-    '/(api|trpc)(.*)',
-  ],
+  matcher: '/:path*',
 }
 
