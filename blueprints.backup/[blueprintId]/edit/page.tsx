@@ -1,3 +1,5 @@
+// ./app/blueprints/[blueprintId]/edit/page.tsx
+
 import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getBlueprintById, updateBlueprint } from '../../actions';

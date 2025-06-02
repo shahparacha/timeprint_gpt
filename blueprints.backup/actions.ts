@@ -1,4 +1,6 @@
 // app/actions/blueprints.ts
+'use server';
+
 import { revalidatePath } from 'next/cache';
 import { writeFile } from 'fs/promises';
 import { randomUUID } from 'crypto';

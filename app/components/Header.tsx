@@ -30,7 +30,7 @@ export default function Header({ userId }: { userId: string | null }) {
         )}
         {userId && (
           <>
-            <Link href="/dashboard" className="nav-link">Dashboard</Link>
+            {/* <Link href="/dashboard" className="nav-link">Dashboard</Link>
             <Link href="/chat" className="nav-link">Ask Anything</Link>
             <Link href="/profile" className="nav-link">Profile</Link>
             <Link href="/organization" className="nav-link">Organization</Link>
@@ -38,7 +38,7 @@ export default function Header({ userId }: { userId: string | null }) {
             <Link href="/reports" className="nav-link">Reports</Link>
             <Link href="/blueprints" className="nav-link">Blueprints</Link>
             <Link href="/subcontractors" className="nav-link">Subcontractors</Link>
-            <Link href="/workers" className="nav-link">Workers</Link>
+            <Link href="/workers" className="nav-link">Workers</Link> */}
             <div className="user-button-wrapper ml-4">
               <UserButtonClient />
             </div>

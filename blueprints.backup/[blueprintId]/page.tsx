@@ -1,6 +1,8 @@
+// ./app/blueprints/[blueprintId]/page.tsx
+
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getBlueprintById } from '../actions';
+import { getBlueprintById, updateBlueprint } from '@/app/blueprints/actions';
 import { DeleteBlueprintButton } from '@/app/components/delete-blueprint-button';
 
 interface BlueprintPageProps {
