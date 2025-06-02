@@ -1,30 +1,50 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { db } from "@/lib/db";
+import { getWeaviateClient } from "@/lib/weaviate/client";
 
 export async function getReports() {
     try {
-        const reports = await db.report.findMany({
-            orderBy: {
-                reportDate: 'desc',
-            },
-            include: {
-                project: {
-                    select: {
-                        name: true,
-                    },
-                },
-                worker: {
-                    select: {
-                        firstName: true,
-                        lastName: true,
-                    },
-                },
-            },
-        });
+        const client = await getWeaviateClient();
 
-        return reports;
+        try {
+            const result = await client.graphql
+                .get()
+                .withClassName("Report")
+                .withFields(`
+                    id
+                    title
+                    filePath
+                    fileType
+                    fileSize
+                    reportDate
+                    projectId
+                    workerId
+                    createdAt
+                    updatedAt
+                    project {
+                        ... on Project {
+                            name
+                        }
+                    }
+                    worker {
+                        ... on Worker {
+                            firstName
+                            lastName
+                        }
+                    }
+                `)
+                .withSort([{ path: ["reportDate"], order: "desc" }])
+                .do();
+
+            if (!result.data || !result.data.Get || !result.data.Get.Report || result.data.Get.Report.length === 0) {
+                return [];
+            }
+
+            return result.data.Get.Report;
+        } finally {
+            await client.close();
+        }
     } catch (error) {
         console.error('Error fetching reports:', error);
         throw new Error('Failed to fetch reports');
@@ -33,24 +53,50 @@ export async function getReports() {
 
 export async function getReportById(id: string) {
     try {
-        const report = await db.report.findUnique({
-            where: { id },
-            include: {
-                project: {
-                    select: {
-                        name: true,
-                    },
-                },
-                worker: {
-                    select: {
-                        firstName: true,
-                        lastName: true,
-                    },
-                },
-            },
-        });
+        const client = await getWeaviateClient();
 
-        return report;
+        try {
+            const result = await client.graphql
+                .get()
+                .withClassName("Report")
+                .withFields(`
+                    id
+                    title
+                    filePath
+                    fileType
+                    fileSize
+                    reportDate
+                    projectId
+                    workerId
+                    createdAt
+                    updatedAt
+                    project {
+                        ... on Project {
+                            name
+                        }
+                    }
+                    worker {
+                        ... on Worker {
+                            firstName
+                            lastName
+                        }
+                    }
+                `)
+                .withWhere({
+                    operator: "Equal",
+                    path: ["id"],
+                    valueString: id
+                })
+                .do();
+
+            if (!result.data || !result.data.Get || !result.data.Get.Report || result.data.Get.Report.length === 0) {
+                return null;
+            }
+
+            return result.data.Get.Report[0];
+        } finally {
+            await client.close();
+        }
     } catch (error) {
         console.error(`Error fetching report ${id}:`, error);
         throw new Error('Failed to fetch report');
@@ -59,24 +105,46 @@ export async function getReportById(id: string) {
 
 export async function getReportsByProjectId(projectId: string) {
     try {
-        const reports = await db.report.findMany({
-            where: {
-                projectId,
-            },
-            orderBy: {
-                reportDate: 'desc',
-            },
-            include: {
-                worker: {
-                    select: {
-                        firstName: true,
-                        lastName: true,
-                    },
-                },
-            },
-        });
+        const client = await getWeaviateClient();
 
-        return reports;
+        try {
+            const result = await client.graphql
+                .get()
+                .withClassName("Report")
+                .withFields(`
+                    id
+                    title
+                    filePath
+                    fileType
+                    fileSize
+                    reportDate
+                    projectId
+                    workerId
+                    createdAt
+                    updatedAt
+                    worker {
+                        ... on Worker {
+                            firstName
+                            lastName
+                        }
+                    }
+                `)
+                .withWhere({
+                    operator: "Equal",
+                    path: ["projectId"],
+                    valueString: projectId
+                })
+                .withSort([{ path: ["reportDate"], order: "desc" }])
+                .do();
+
+            if (!result.data || !result.data.Get || !result.data.Get.Report || result.data.Get.Report.length === 0) {
+                return [];
+            }
+
+            return result.data.Get.Report;
+        } finally {
+            await client.close();
+        }
     } catch (error) {
         console.error(`Error fetching reports for project ${projectId}:`, error);
         throw new Error('Failed to fetch reports');
@@ -85,16 +153,40 @@ export async function getReportsByProjectId(projectId: string) {
 
 export async function getReportsByWorkerId(workerId: string) {
     try {
-        const reports = await db.report.findMany({
-            where: {
-                workerId,
-            },
-            orderBy: {
-                reportDate: 'desc',
-            },
-        });
+        const client = await getWeaviateClient();
 
-        return reports;
+        try {
+            const result = await client.graphql
+                .get()
+                .withClassName("Report")
+                .withFields(`
+                    id
+                    title
+                    filePath
+                    fileType
+                    fileSize
+                    reportDate
+                    projectId
+                    workerId
+                    createdAt
+                    updatedAt
+                `)
+                .withWhere({
+                    operator: "Equal",
+                    path: ["workerId"],
+                    valueString: workerId
+                })
+                .withSort([{ path: ["reportDate"], order: "desc" }])
+                .do();
+
+            if (!result.data || !result.data.Get || !result.data.Get.Report || result.data.Get.Report.length === 0) {
+                return [];
+            }
+
+            return result.data.Get.Report;
+        } finally {
+            await client.close();
+        }
     } catch (error) {
         console.error(`Error fetching reports for worker ${workerId}:`, error);
         throw new Error('Failed to fetch reports');
@@ -103,30 +195,42 @@ export async function getReportsByWorkerId(workerId: string) {
 
 export async function deleteReport(id: string) {
     try {
-        // Get the report to get the projectId and workerId before deleting
-        const report = await db.report.findUnique({
-            where: { id },
-            select: {
-                projectId: true,
-                workerId: true,
-                filePath: true,
-            },
-        });
+        const client = await getWeaviateClient();
 
-        if (!report) {
-            throw new Error('Report not found');
+        try {
+            // Get the report to get the projectId and workerId before deleting
+            const result = await client.graphql
+                .get()
+                .withClassName("Report")
+                .withFields("projectId workerId filePath")
+                .withWhere({
+                    operator: "Equal",
+                    path: ["id"],
+                    valueString: id
+                })
+                .do();
+
+            if (!result.data || !result.data.Get || !result.data.Get.Report || result.data.Get.Report.length === 0) {
+                throw new Error('Report not found');
+            }
+
+            const report = result.data.Get.Report[0];
+
+            // Delete the report record
+            await client.data
+                .deleter()
+                .withClassName("Report")
+                .withId(id)
+                .do();
+
+            // TODO: Delete the actual file if needed
+
+            revalidatePath('/reports');
+            revalidatePath(`/workers/${report.workerId}`);
+            revalidatePath(`/projects/${report.projectId}`);
+        } finally {
+            await client.close();
         }
-
-        // Delete the report record
-        await db.report.delete({
-            where: { id },
-        });
-
-        // TODO: Delete the actual file if needed
-
-        revalidatePath('/reports');
-        revalidatePath(`/workers/${report.workerId}`);
-        revalidatePath(`/projects/${report.projectId}`);
     } catch (error) {
         console.error(`Error deleting report ${id}:`, error);
         throw new Error('Failed to delete report');

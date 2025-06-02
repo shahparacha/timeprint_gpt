@@ -1,8 +1,8 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 
-// Define which routes are public (these won't require authentication)
-const isPublicRoute = createRouteMatcher(['/', '/sign-in(.*)', '/sign-up(.*)'])
+// Define which routes are public (these won't require authentication), put '/sign-up(.*)' and '/sign-in(.*)'back
+const isPublicRoute = createRouteMatcher(['/', '/construction-site-video.mp4'])
 
 // Define which routes are admin only
 const isAdminRoute = createRouteMatcher(['/admin(.*)'])

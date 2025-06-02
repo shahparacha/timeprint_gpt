@@ -7,7 +7,7 @@ export default async function ProjectsPage() {
   // Get the authenticated user and their organization with session claims
   const { userId, orgId, sessionClaims } = await auth();
   const user = await currentUser();
-  console.log("orgId", orgId)
+  console.log("orgId", orgId);
 
   // Redirect if not authenticated
   if (!userId || !user) {
@@ -24,6 +24,7 @@ export default async function ProjectsPage() {
 
   // Fetch projects using the action
   const projects = await getProjects();
+  console.log("Projects in page component:", projects);
 
   return (
     <div className="max-w-6xl mx-auto p-6">
@@ -36,7 +37,7 @@ export default async function ProjectsPage() {
         </p>
       </div>
 
-      {projects.length === 0 ? (
+      {!projects || projects.length === 0 ? (
         <div className="card-neumorphic text-center p-8">
           <h3 className="text-xl font-medium mb-2 text-[#DA7756]">No projects found</h3>
           <p className="text-[#333333] mb-4">

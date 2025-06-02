@@ -1,12 +1,27 @@
 // lib/weaviate/client.ts
-import weaviate, { WeaviateClient } from 'weaviate-client';
+import weaviate from 'weaviate-ts-client';
 
-// Create a client connection function
-export async function getWeaviateClient(): Promise<WeaviateClient> {
-    return weaviate.connectToWeaviateCloud(
-        '5zegkvslsbc299suebh2jg.c0.us-west3.gcp.weaviate.cloud',
-        {
-            authCredentials: new weaviate.ApiKey('4xscFunraKcfmuQ94USNbj7Xu7MyvE3Lsf48'),
-        }
-    );
+export function getWeaviateClient() {
+    const apiKey = process.env.WEAVIATE_API_KEY;
+    const endpoint = process.env.WEAVIATE_CLUSTER_URL;
+
+    if (!apiKey || !endpoint) {
+        throw new Error('Weaviate API key or endpoint not found');
+    }
+
+    try {
+        console.log("Connecting to Weaviate at:", endpoint);
+        // Use v2 client which works better with Next.js
+        const client = weaviate.client({
+            scheme: 'https',
+            host: endpoint,
+            apiKey: new weaviate.ApiKey(apiKey),
+        });
+
+        console.log("Connected to Weaviate successfully");
+        return client;
+    } catch (error) {
+        console.error('Error connecting to Weaviate:', error);
+        throw new Error('Failed to connect to Weaviate');
+    }
 }

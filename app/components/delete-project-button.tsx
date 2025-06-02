@@ -1,30 +1,58 @@
-"use client";
+// app/components/delete-project-button.tsx
+'use client';
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { deleteProject } from "@/app/projects/actions";
 
-export function DeleteProjectButton({ id }: { id: string }) {
+interface DeleteProjectButtonProps {
+    id: string;
+}
+
+export function DeleteProjectButton({ id }: DeleteProjectButtonProps) {
+    const [isConfirming, setIsConfirming] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
-    const router = useRouter();
 
     const handleDelete = async () => {
-        if (!confirm("Are you sure you want to delete this project?")) {
-            return;
-        }
+        if (isDeleting) return;
 
-        setIsDeleting(true);
-        await deleteProject(id);
-        router.push("/projects");
+        try {
+            setIsDeleting(true);
+            // Let the server action handle the redirect
+            await deleteProject(id);
+        } catch (error) {
+            console.error("Error deleting project:", error);
+            setIsDeleting(false);
+            setIsConfirming(false);
+        }
     };
+
+    if (isConfirming) {
+        return (
+            <div className="flex gap-2">
+                <button
+                    onClick={handleDelete}
+                    disabled={isDeleting}
+                    className="btn-neumorphic text-[#333333] hover:text-[#DA7756] hover:bg-[#F5F5F5] transition-all"
+                >
+                    {isDeleting ? "Deleting..." : "Confirm"}
+                </button>
+                <button
+                    onClick={() => setIsConfirming(false)}
+                    disabled={isDeleting}
+                    className="btn-neumorphic text-[#333333] hover:text-[#DA7756] hover:bg-[#F5F5F5] transition-all"
+                >
+                    Cancel
+                </button>
+            </div>
+        );
+    }
 
     return (
         <button
-            onClick={handleDelete}
-            disabled={isDeleting}
-            className="btn-neumorphic text-red-600 hover:text-red-700 disabled:opacity-50"
+            onClick={() => setIsConfirming(true)}
+            className="btn-neumorphic text-[#333333] hover:text-[#DA7756] hover:bg-[#F5F5F5] transition-all"
         >
-            {isDeleting ? "Deleting..." : "Delete"}
+            Delete Project
         </button>
     );
 }

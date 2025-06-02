@@ -1,4 +1,3 @@
-// components/UserButtonClient.tsx
 'use client';
 
 import { useState } from "react";
@@ -10,7 +9,6 @@ export const UserButtonClient = () => {
   const [isHovered, setIsHovered] = useState(false);
   const { user } = useUser();
   const { signOut } = useClerk();
-
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);
@@ -35,7 +33,7 @@ export const UserButtonClient = () => {
     <div className="relative">
       <button
         onClick={toggleMenu}
-        className="btn-neumorphic flex items-center focus:outline-none"
+        className="bg-transparent focus:outline-none"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
@@ -43,13 +41,13 @@ export const UserButtonClient = () => {
           <img
             src="/logo2.png"
             alt="User"
-            className="w-8 h-8 rounded-full border-2 border-white transition-all duration-300"
+            className="w-8 h-8 rounded-full transition-all duration-300"
           />
         ) : (
           <img
             src={user?.imageUrl || "https://via.placeholder.com/40"}
             alt="User"
-            className="w-8 h-8 rounded-full border-2 border-white transition-all duration-300"
+            className="w-8 h-8 rounded-full transition-all duration-300"
           />
         )}
       </button>

@@ -4,7 +4,7 @@ import { UserButtonClient } from "./UserButtonClient";
 // This will be our client component
 export default function Header({ userId }: { userId: string | null }) {
   return (
-    <nav className="nav-neumorphic py-4 px-6 flex items-center justify-between mb-5 sticky top-0 z-10">
+    <nav className="nav-neumorphic py-4 px-6 flex items-center justify-between mb-5 sticky top-0 z-50">
       <div className="flex items-center">
         <Link href="/" className="flex items-center">
           <div className="brand-logo">
@@ -19,8 +19,8 @@ export default function Header({ userId }: { userId: string | null }) {
       <div className="flex items-center space-x-4">
         {!userId && (
           <>
-            <Link href="/sign-in" className="nav-link">Sign In</Link>
-            <Link href="/sign-up" className="nav-link">Sign Up</Link>
+            {/* <Link href="/sign-in" className="nav-link">Sign In</Link>
+            <Link href="/sign-up" className="nav-link">Sign Up</Link> */}
             <img
               src="/logo2.png"
               alt="Logo"

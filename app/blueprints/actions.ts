@@ -1,28 +1,73 @@
-'use server';
-
+// app/actions/blueprints.ts
 import { revalidatePath } from 'next/cache';
 import { writeFile } from 'fs/promises';
 import { randomUUID } from 'crypto';
 import path from 'path';
 import { mkdir } from 'fs/promises';
-import { db } from "@/lib/db";
+import { getWeaviateClient } from "@/lib/weaviate/client";
 
 export async function getBlueprints() {
     try {
-        const blueprints = await db.blueprint.findMany({
-            orderBy: {
-                createdAt: 'desc',
-            },
-            include: {
-                project: {
-                    select: {
-                        name: true,
-                    },
-                },
-            },
-        });
+        const client = await getWeaviateClient();
 
-        return blueprints;
+        try {
+            const result = await client.graphql
+                .get()
+                .withClassName("Blueprint")
+                .withFields(`
+                    id
+                    title
+                    filePath
+                    fileType
+                    fileSize
+                    projectId
+                    createdAt
+                    updatedAt
+                `)
+                .withSort([{ path: ["createdAt"], order: "desc" }])
+                .do();
+
+            if (!result.data || !result.data.Get || !result.data.Get.Blueprint || result.data.Get.Blueprint.length === 0) {
+                return [];
+            }
+
+            // Get project names for each blueprint
+            const blueprints = [];
+            for (const blueprint of result.data.Get.Blueprint) {
+                const enhancedBlueprint = {
+                    ...blueprint,
+                    project: { name: null }
+                };
+
+                // Get project name
+                try {
+                    const projectResult = await client.graphql
+                        .get()
+                        .withClassName("Project")
+                        .withFields("name")
+                        .withWhere({
+                            operator: "Equal",
+                            path: ["id"],
+                            valueString: blueprint.projectId
+                        })
+                        .do();
+
+                    if (projectResult.data?.Get?.Project?.length > 0) {
+                        enhancedBlueprint.project = {
+                            name: projectResult.data.Get.Project[0].name
+                        };
+                    }
+                } catch (error) {
+                    console.error(`Error fetching project for blueprint ${blueprint.id}:`, error);
+                }
+
+                blueprints.push(enhancedBlueprint);
+            }
+
+            return blueprints;
+        } finally {
+            await client.close();
+        }
     } catch (error) {
         console.error('Error fetching blueprints:', error);
         throw new Error('Failed to fetch blueprints');
@@ -31,18 +76,65 @@ export async function getBlueprints() {
 
 export async function getBlueprintById(id: string) {
     try {
-        const blueprint = await db.blueprint.findUnique({
-            where: { id },
-            include: {
-                project: {
-                    select: {
-                        name: true,
-                    },
-                },
-            },
-        });
+        const client = await getWeaviateClient();
 
-        return blueprint;
+        try {
+            const result = await client.graphql
+                .get()
+                .withClassName("Blueprint")
+                .withFields(`
+                    id
+                    title
+                    filePath
+                    fileType
+                    fileSize
+                    projectId
+                    createdAt
+                    updatedAt
+                `)
+                .withWhere({
+                    operator: "Equal",
+                    path: ["id"],
+                    valueString: id
+                })
+                .do();
+
+            if (!result.data || !result.data.Get || !result.data.Get.Blueprint || result.data.Get.Blueprint.length === 0) {
+                return null;
+            }
+
+            const blueprint = result.data.Get.Blueprint[0];
+            const enhancedBlueprint = {
+                ...blueprint,
+                project: { name: null }
+            };
+
+            // Get project name
+            try {
+                const projectResult = await client.graphql
+                    .get()
+                    .withClassName("Project")
+                    .withFields("name")
+                    .withWhere({
+                        operator: "Equal",
+                        path: ["id"],
+                        valueString: blueprint.projectId
+                    })
+                    .do();
+
+                if (projectResult.data?.Get?.Project?.length > 0) {
+                    enhancedBlueprint.project = {
+                        name: projectResult.data.Get.Project[0].name
+                    };
+                }
+            } catch (error) {
+                console.error(`Error fetching project for blueprint ${id}:`, error);
+            }
+
+            return enhancedBlueprint;
+        } finally {
+            await client.close();
+        }
     } catch (error) {
         console.error(`Error fetching blueprint ${id}:`, error);
         throw new Error('Failed to fetch blueprint');
@@ -51,16 +143,40 @@ export async function getBlueprintById(id: string) {
 
 export async function getBlueprintsByProjectId(projectId: string) {
     try {
-        const blueprints = await db.blueprint.findMany({
-            where: {
-                projectId,
-            },
-            orderBy: {
-                createdAt: 'desc',
-            },
-        });
+        const client = await getWeaviateClient();
 
-        return blueprints;
+        try {
+            const result = await client.graphql
+                .get()
+                .withClassName("Blueprint")
+                .withFields(`
+                    id
+                    title
+                    filePath
+                    fileType
+                    fileSize
+                    createdAt
+                    updatedAt
+                `)
+                .withWhere({
+                    operator: "Equal",
+                    path: ["projectId"],
+                    valueString: projectId
+                })
+                .withSort([{ path: ["createdAt"], order: "desc" }])
+                .do();
+
+            if (!result.data || !result.data.Get || !result.data.Get.Blueprint || result.data.Get.Blueprint.length === 0) {
+                return [];
+            }
+
+            return result.data.Get.Blueprint.map(blueprint => ({
+                ...blueprint,
+                projectId
+            }));
+        } finally {
+            await client.close();
+        }
     } catch (error) {
         console.error(`Error fetching blueprints for project ${projectId}:`, error);
         throw new Error('Failed to fetch blueprints');
@@ -97,21 +213,55 @@ export async function createBlueprint(formData: FormData) {
         // Create a web-accessible path
         const publicFilePath = `/uploads/blueprints/${uniqueFilename}`;
 
-        // Create the blueprint record
-        const blueprint = await db.blueprint.create({
-            data: {
-                title,
-                filePath: publicFilePath,
-                fileType,
-                fileSize,
-                projectId,
-            },
-        });
+        // Get Weaviate client
+        const client = await getWeaviateClient();
+        const now = new Date().toISOString();
 
-        revalidatePath('/blueprints');
-        revalidatePath(`/projects/${projectId}`);
+        try {
+            // Create blueprint object using data creator
+            const result = await client.data
+                .creator()
+                .withClassName("Blueprint")
+                .withProperties({
+                    title,
+                    filePath: publicFilePath,
+                    fileType,
+                    fileSize,
+                    projectId,
+                    createdAt: now,
+                    updatedAt: now
+                })
+                .do();
 
-        return blueprint.id;
+            const blueprintId = result.id;
+
+            // Create reference from blueprint to project
+            await client.data.referenceCreator()
+                .withClassName("Blueprint")
+                .withId(blueprintId)
+                .withReferenceProperty("project")
+                .withReference({
+                    beacon: `weaviate://localhost/Project/${projectId}`
+                })
+                .do();
+
+            // Add blueprint to project's blueprints collection
+            await client.data.referenceCreator()
+                .withClassName("Project")
+                .withId(projectId)
+                .withReferenceProperty("blueprints")
+                .withReference({
+                    beacon: `weaviate://localhost/Blueprint/${blueprintId}`
+                })
+                .do();
+
+            revalidatePath('/blueprints');
+            revalidatePath(`/projects/${projectId}`);
+
+            return blueprintId;
+        } finally {
+            await client.close();
+        }
     } catch (error) {
         console.error('Error creating blueprint:', error);
         throw new Error('Failed to create blueprint');
@@ -121,9 +271,7 @@ export async function createBlueprint(formData: FormData) {
 export async function updateBlueprint(id: string, formData: FormData) {
     try {
         // Get the current blueprint
-        const currentBlueprint = await db.blueprint.findUnique({
-            where: { id },
-        });
+        const currentBlueprint = await getBlueprintById(id);
 
         if (!currentBlueprint) {
             throw new Error('Blueprint not found');
@@ -166,25 +314,81 @@ export async function updateBlueprint(id: string, formData: FormData) {
             // TODO: Delete the old file if needed
         }
 
-        // Update the blueprint record
-        await db.blueprint.update({
-            where: { id },
-            data: {
-                title,
-                filePath,
-                fileType,
-                fileSize,
-                projectId,
-            },
-        });
+        // Get Weaviate client
+        const client = await getWeaviateClient();
+        const now = new Date().toISOString();
 
-        revalidatePath(`/blueprints/${id}`);
-        revalidatePath('/blueprints');
+        try {
+            // Update the blueprint properties
+            await client.data
+                .updater()
+                .withClassName("Blueprint")
+                .withId(id)
+                .withProperties({
+                    title,
+                    filePath,
+                    fileType,
+                    fileSize,
+                    projectId,
+                    updatedAt: now
+                })
+                .do();
 
-        // Revalidate related paths if project changed
-        if (projectId !== currentBlueprint.projectId) {
-            revalidatePath(`/projects/${currentBlueprint.projectId}`);
-            revalidatePath(`/projects/${projectId}`);
+            // If project changed, update references
+            if (projectId !== currentBlueprint.projectId) {
+                // First delete the old references
+
+                // 1. Remove reference from blueprint to old project
+                await client.data.referenceDeleter()
+                    .withClassName("Blueprint")
+                    .withId(id)
+                    .withReferenceProperty("project")
+                    .withReference({
+                        beacon: `weaviate://localhost/Project/${currentBlueprint.projectId}`
+                    })
+                    .do();
+
+                // 2. Remove reference from old project to blueprint
+                await client.data.referenceDeleter()
+                    .withClassName("Project")
+                    .withId(currentBlueprint.projectId)
+                    .withReferenceProperty("blueprints")
+                    .withReference({
+                        beacon: `weaviate://localhost/Blueprint/${id}`
+                    })
+                    .do();
+
+                // 3. Add reference from blueprint to new project
+                await client.data.referenceCreator()
+                    .withClassName("Blueprint")
+                    .withId(id)
+                    .withReferenceProperty("project")
+                    .withReference({
+                        beacon: `weaviate://localhost/Project/${projectId}`
+                    })
+                    .do();
+
+                // 4. Add reference from new project to blueprint
+                await client.data.referenceCreator()
+                    .withClassName("Project")
+                    .withId(projectId)
+                    .withReferenceProperty("blueprints")
+                    .withReference({
+                        beacon: `weaviate://localhost/Blueprint/${id}`
+                    })
+                    .do();
+            }
+
+            revalidatePath(`/blueprints/${id}`);
+            revalidatePath('/blueprints');
+
+            // Revalidate related paths if project changed
+            if (projectId !== currentBlueprint.projectId) {
+                revalidatePath(`/projects/${currentBlueprint.projectId}`);
+                revalidatePath(`/projects/${projectId}`);
+            }
+        } finally {
+            await client.close();
         }
     } catch (error) {
         console.error(`Error updating blueprint ${id}:`, error);
@@ -195,27 +399,30 @@ export async function updateBlueprint(id: string, formData: FormData) {
 export async function deleteBlueprint(id: string) {
     try {
         // Get the blueprint to get the projectId before deleting
-        const blueprint = await db.blueprint.findUnique({
-            where: { id },
-            select: {
-                projectId: true,
-                filePath: true,
-            },
-        });
+        const blueprint = await getBlueprintById(id);
 
         if (!blueprint) {
             throw new Error('Blueprint not found');
         }
 
-        // Delete the blueprint record
-        await db.blueprint.delete({
-            where: { id },
-        });
+        // Get Weaviate client
+        const client = await getWeaviateClient();
 
-        // TODO: Delete the actual file if needed
+        try {
+            // Delete the blueprint
+            await client.data
+                .deleter()
+                .withClassName("Blueprint")
+                .withId(id)
+                .do();
 
-        revalidatePath('/blueprints');
-        revalidatePath(`/projects/${blueprint.projectId}`);
+            // TODO: Delete the actual file if needed
+
+            revalidatePath('/blueprints');
+            revalidatePath(`/projects/${blueprint.projectId}`);
+        } finally {
+            await client.close();
+        }
     } catch (error) {
         console.error(`Error deleting blueprint ${id}:`, error);
         throw new Error('Failed to delete blueprint');

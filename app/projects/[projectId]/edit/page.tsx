@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { db } from "@/lib/db";
+import { getWeaviateClient } from "@/lib/weaviate/client";
 import { updateProject } from "../../actions";
 
 export default async function EditProjectPage({
@@ -19,12 +19,29 @@ export default async function EditProjectPage({
     const resolvedParams = await params;
     const projectId = resolvedParams.projectId;
 
-    const project = await db.project.findUnique({
-        where: {
-            id: projectId,
-            clerkOrgId: orgId // Ensure the project belongs to the user's organization
-        }
-    });
+    const client = getWeaviateClient();
+    const result = await client.graphql
+        .get()
+        .withClassName("Project")
+        .withFields("name description address city state country zipCode createdAt updatedAt _additional { id }")
+        .withWhere({
+            operator: "And",
+            operands: [
+                {
+                    operator: "Equal",
+                    path: ["_id"],
+                    valueString: projectId
+                },
+                {
+                    operator: "Equal",
+                    path: ["clerkOrgId"],
+                    valueString: orgId
+                }
+            ]
+        })
+        .do();
+
+    const project = result.data?.Get?.Project?.[0];
 
     if (!project) {
         notFound();
@@ -37,7 +54,7 @@ export default async function EditProjectPage({
                     Projects
                 </Link>
                 <span className="text-[#333333]">/</span>
-                <Link href={`/projects/${project.id}`} className="text-[#DA7756] hover:opacity-80">
+                <Link href={`/projects/${project._additional.id}`} className="text-[#DA7756] hover:opacity-80">
                     {project.name}
                 </Link>
                 <span className="text-[#333333]">/</span>
@@ -50,7 +67,7 @@ export default async function EditProjectPage({
 
                     <form action={async (formData: FormData) => {
                         "use server";
-                        await updateProject(project.id, formData);
+                        await updateProject(project._additional.id, formData);
                     }} className="space-y-6">
                         <div className="space-y-4">
                             <div>
@@ -182,14 +199,14 @@ export default async function EditProjectPage({
                         <div className="flex gap-3 pt-4">
                             <button
                                 type="submit"
-                                className="btn-neumorphic btn-primary"
+                                className="btn-neumorphic btn-primary text-white hover:bg-[#DA7756] hover:opacity-90 transition-all"
                             >
                                 Update Project
                             </button>
 
                             <Link
-                                href={`/projects/${project.id}`}
-                                className="btn-neumorphic"
+                                href={`/projects/${project._additional.id}`}
+                                className="btn-neumorphic text-[#333333] hover:text-[#DA7756] hover:bg-[#F5F5F5] transition-all"
                             >
                                 Cancel
                             </Link>

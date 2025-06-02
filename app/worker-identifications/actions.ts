@@ -1,24 +1,46 @@
-'use server';
-
 import { revalidatePath } from 'next/cache';
 import { writeFile, unlink, access } from 'fs/promises';
 import { randomUUID } from 'crypto';
 import path from 'path';
 import { mkdir } from 'fs/promises';
-import { db } from '@/lib/db';
+import { getWeaviateClient } from '@/lib/weaviate/client';
 
 export async function getWorkerIdentificationsByWorkerId(workerId: string) {
     try {
-        const identifications = await db.workerIdentification.findMany({
-            where: {
-                workerId,
-            },
-            orderBy: [
-                { createdAt: 'desc' },
-            ],
-        });
+        const client = await getWeaviateClient();
 
-        return identifications;
+        try {
+            const result = await client.graphql
+                .get()
+                .withClassName("WorkerIdentification")
+                .withFields(`
+                    id
+                    fileName
+                    filePath
+                    fileType
+                    fileSize
+                    issueDate
+                    expiryDate
+                    workerId
+                    createdAt
+                    updatedAt
+                `)
+                .withWhere({
+                    operator: "Equal",
+                    path: ["workerId"],
+                    valueString: workerId
+                })
+                .withSort([{ path: ["createdAt"], order: "desc" }])
+                .do();
+
+            if (!result.data || !result.data.Get || !result.data.Get.WorkerIdentification || result.data.Get.WorkerIdentification.length === 0) {
+                return [];
+            }
+
+            return result.data.Get.WorkerIdentification;
+        } finally {
+            await client.close();
+        }
     } catch (error) {
         console.error(`Error fetching identifications for worker ${workerId}:`, error);
         throw new Error('Failed to fetch identifications');
@@ -27,14 +49,51 @@ export async function getWorkerIdentificationsByWorkerId(workerId: string) {
 
 export async function getWorkerIdentificationById(id: string) {
     try {
-        const identification = await db.workerIdentification.findUnique({
-            where: { id },
-            include: {
-                worker: true,
-            },
-        });
+        const client = await getWeaviateClient();
 
-        return identification;
+        try {
+            const result = await client.graphql
+                .get()
+                .withClassName("WorkerIdentification")
+                .withFields(`
+                    id
+                    fileName
+                    filePath
+                    fileType
+                    fileSize
+                    issueDate
+                    expiryDate
+                    workerId
+                    createdAt
+                    updatedAt
+                    worker {
+                        ... on Worker {
+                            id
+                            firstName
+                            lastName
+                            email
+                            phone
+                            subcontractorId
+                            createdAt
+                            updatedAt
+                        }
+                    }
+                `)
+                .withWhere({
+                    operator: "Equal",
+                    path: ["id"],
+                    valueString: id
+                })
+                .do();
+
+            if (!result.data || !result.data.Get || !result.data.Get.WorkerIdentification || result.data.Get.WorkerIdentification.length === 0) {
+                return null;
+            }
+
+            return result.data.Get.WorkerIdentification[0];
+        } finally {
+            await client.close();
+        }
     } catch (error) {
         console.error(`Error fetching worker identification ${id}:`, error);
         throw new Error('Failed to fetch worker identification');
@@ -80,7 +139,7 @@ export async function createWorkerIdentification(formData: FormData) {
         const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'identifications');
         await mkdir(uploadsDir, { recursive: true });
 
-        // Generate a unique filename using crypto instead of uuid
+        // Generate a unique filename using crypto.randomUUID()
         const uniqueFilename = `${randomUUID()}-${file.name}`;
         const filePath = path.join(uploadsDir, uniqueFilename);
 
@@ -95,25 +154,59 @@ export async function createWorkerIdentification(formData: FormData) {
         const issueDateStr = formData.get('issueDate') as string;
         const expiryDateStr = formData.get('expiryDate') as string;
 
-        const issueDate = issueDateStr ? new Date(issueDateStr) : null;
-        const expiryDate = expiryDateStr ? new Date(expiryDateStr) : null;
+        const issueDate = issueDateStr ? new Date(issueDateStr).toISOString() : null;
+        const expiryDate = expiryDateStr ? new Date(expiryDateStr).toISOString() : null;
 
-        // Create the worker identification record
-        const identification = await db.workerIdentification.create({
-            data: {
-                fileName,
-                filePath: publicFilePath,
-                fileType,
-                fileSize,
-                issueDate,
-                expiryDate,
-                workerId,
-            },
-        });
+        // Get Weaviate client
+        const client = await getWeaviateClient();
+        const now = new Date().toISOString();
 
-        revalidatePath(`/workers/${workerId}`);
+        try {
+            // Create worker identification object
+            const result = await client.data
+                .creator()
+                .withClassName("WorkerIdentification")
+                .withProperties({
+                    fileName,
+                    filePath: publicFilePath,
+                    fileType,
+                    fileSize,
+                    issueDate,
+                    expiryDate,
+                    workerId,
+                    createdAt: now,
+                    updatedAt: now
+                })
+                .do();
 
-        return identification.id;
+            const identificationId = result.id;
+
+            // Create reference from identification to worker
+            await client.data.referenceCreator()
+                .withClassName("WorkerIdentification")
+                .withId(identificationId)
+                .withReferenceProperty("worker")
+                .withReference({
+                    beacon: `weaviate://localhost/Worker/${workerId}`
+                })
+                .do();
+
+            // Add identification to worker's identifications collection
+            await client.data.referenceCreator()
+                .withClassName("Worker")
+                .withId(workerId)
+                .withReferenceProperty("identifications")
+                .withReference({
+                    beacon: `weaviate://localhost/WorkerIdentification/${identificationId}`
+                })
+                .do();
+
+            revalidatePath(`/workers/${workerId}`);
+
+            return identificationId;
+        } finally {
+            await client.close();
+        }
     } catch (error) {
         console.error('Error creating worker identification:', error);
         throw new Error('Failed to create worker identification');
@@ -123,9 +216,7 @@ export async function createWorkerIdentification(formData: FormData) {
 export async function updateWorkerIdentification(id: string, formData: FormData) {
     try {
         // Get the current identification
-        const currentIdentification = await db.workerIdentification.findUnique({
-            where: { id },
-        });
+        const currentIdentification = await getWorkerIdentificationById(id);
 
         if (!currentIdentification) {
             throw new Error('Worker identification not found');
@@ -153,7 +244,7 @@ export async function updateWorkerIdentification(id: string, formData: FormData)
             const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'identifications');
             await mkdir(uploadsDir, { recursive: true });
 
-            // Generate a unique filename using crypto instead of uuid
+            // Generate a unique filename using crypto.randomUUID()
             const uniqueFilename = `${randomUUID()}-${file.name}`;
             const newFilePath = path.join(uploadsDir, uniqueFilename);
 
@@ -175,23 +266,34 @@ export async function updateWorkerIdentification(id: string, formData: FormData)
         const issueDateStr = formData.get('issueDate') as string;
         const expiryDateStr = formData.get('expiryDate') as string;
 
-        const issueDate = issueDateStr ? new Date(issueDateStr) : null;
-        const expiryDate = expiryDateStr ? new Date(expiryDateStr) : null;
+        const issueDate = issueDateStr ? new Date(issueDateStr).toISOString() : null;
+        const expiryDate = expiryDateStr ? new Date(expiryDateStr).toISOString() : null;
 
-        // Update the worker identification record
-        await db.workerIdentification.update({
-            where: { id },
-            data: {
-                fileName,
-                filePath,
-                fileType,
-                fileSize,
-                issueDate,
-                expiryDate,
-            },
-        });
+        // Get Weaviate client
+        const client = await getWeaviateClient();
+        const now = new Date().toISOString();
 
-        revalidatePath(`/workers/${currentIdentification.workerId}`);
+        try {
+            // Update worker identification
+            await client.data
+                .updater()
+                .withClassName("WorkerIdentification")
+                .withId(id)
+                .withProperties({
+                    fileName,
+                    filePath,
+                    fileType,
+                    fileSize,
+                    issueDate,
+                    expiryDate,
+                    updatedAt: now
+                })
+                .do();
+
+            revalidatePath(`/workers/${currentIdentification.workerId}`);
+        } finally {
+            await client.close();
+        }
     } catch (error) {
         console.error(`Error updating worker identification ${id}:`, error);
         throw new Error('Failed to update worker identification');
@@ -201,13 +303,7 @@ export async function updateWorkerIdentification(id: string, formData: FormData)
 export async function deleteWorkerIdentification(id: string) {
     try {
         // Get the worker ID and file path before deleting
-        const identification = await db.workerIdentification.findUnique({
-            where: { id },
-            select: {
-                workerId: true,
-                filePath: true,
-            },
-        });
+        const identification = await getWorkerIdentificationById(id);
 
         if (!identification) {
             throw new Error('Worker identification not found');
@@ -216,12 +312,31 @@ export async function deleteWorkerIdentification(id: string) {
         // Delete the actual file from the filesystem
         await deleteFileIfExists(identification.filePath);
 
-        // Delete the identification record from the database
-        await db.workerIdentification.delete({
-            where: { id },
-        });
+        // Get Weaviate client
+        const client = await getWeaviateClient();
 
-        revalidatePath(`/workers/${identification.workerId}`);
+        try {
+            // Remove reference from worker to identification first
+            await client.data.referenceDeleter()
+                .withClassName("Worker")
+                .withId(identification.workerId)
+                .withReferenceProperty("identifications")
+                .withReference({
+                    beacon: `weaviate://localhost/WorkerIdentification/${id}`
+                })
+                .do();
+
+            // Delete the identification record
+            await client.data
+                .deleter()
+                .withClassName("WorkerIdentification")
+                .withId(id)
+                .do();
+
+            revalidatePath(`/workers/${identification.workerId}`);
+        } finally {
+            await client.close();
+        }
     } catch (error) {
         console.error(`Error deleting worker identification ${id}:`, error);
         throw new Error('Failed to delete worker identification');
