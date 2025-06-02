@@ -58,3 +58,4 @@ sign-up.backup/
 admin.backup/
 *.backup/
 lib/weaviate.backup/
+lib.backup/

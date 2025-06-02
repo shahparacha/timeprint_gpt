@@ -69,7 +69,7 @@ export default function Home() {
                     -2px -2px 3px rgba(0, 0, 0, 0.9)
                   `
               }}>
-              Our rugged body-cams stream second-by-second motion data so stakeholders can create live reports, alerts & smarter loans.
+              Our rugged body-cams stream second-by-second motion data so stakeholders can create custom live reports, alerts & smarter risk management.
             </h2>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button
@@ -223,9 +223,9 @@ export default function Home() {
           <div className="container mx-auto px-4">
             <h2 className="text-3xl font-bold text-center mb-12 text-[var(--dark-gray)]">Benefits by Stakeholder</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {/* Owners & GCs */}
+              {/* Owners & PMs */}
               <div className="card-neumorphic hover:transform hover:scale-105 transition-all duration-200">
-                <h3 className="text-2xl font-semibold mb-4 brand-text">Owners & GCs</h3>
+                <h3 className="text-2xl font-semibold mb-4 brand-text">Owners & PMs</h3>
                 <ul className="space-y-3">
                   <li className="flex items-start">
                     <span className="text-[var(--accent-green)] mr-2">✓</span>
