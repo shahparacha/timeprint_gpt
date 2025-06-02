@@ -56,3 +56,4 @@ chat.backup/
 sign-in.backup/
 sign-up.backup/
 admin.backup/
+*.backup/
