@@ -39,3 +39,20 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# remove later when acutally building the project
+*.backup/
+blueprints.backup/
+worker-identifications.backup/
+reports.backup/
+subcontractors.backup/
+components.backup/
+workers.backup/
+projects.backup/
+profile.backup/
+organization.backup/
+dashboard.backup/
+chat.backup/
+sign-in.backup/
+sign-up.backup/
+admin.backup/
