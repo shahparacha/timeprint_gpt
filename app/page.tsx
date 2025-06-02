@@ -76,7 +76,7 @@ export default function Home() {
                 onClick={handleBookCall}
                 className="btn-neumorphic btn-primary text-white font-semibold py-3 px-8 rounded-lg"
               >
-                Book a 15-min call
+                Book a 30-min call
               </button>
               <button
                 onClick={scrollToFeatures}
@@ -293,7 +293,7 @@ export default function Home() {
               onClick={handleBookCall}
               className="btn-neumorphic bg-[var(--white)] text-[var(--terra-cotta)] hover:bg-[var(--off-white)] font-bold py-4 px-10 rounded-lg transition duration-200 text-lg"
             >
-              Book a 15-min call
+              Book a 30-min call
             </button>
           </div>
         </section>
